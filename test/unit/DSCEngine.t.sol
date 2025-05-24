@@ -23,5 +23,9 @@ contract DSCEngineTest is Test {
         (ethUsdPriceFeed, weth, , , ) = helperConfig.activeNetworkConfig();
     }
 
+    function testGetUsdValue() external{
+        
+    }
+
     
 }
