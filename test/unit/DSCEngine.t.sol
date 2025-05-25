@@ -24,7 +24,10 @@ contract DSCEngineTest is Test {
     }
 
     function testGetUsdValue() external{
-        
+        uint256 ethAmount = 15e18;
+        uint256 expectedUsd = 30000e18;
+        uint256 actualUsd = engine.getUsdValue(weth, ethAmount);
+
     }
 
     
