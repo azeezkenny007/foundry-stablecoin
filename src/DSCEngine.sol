@@ -68,8 +68,16 @@ contract DSCEngine is ReentrancyGuard {
     /**
      * @notice Deposits collateral and mints DSC tokens in a single transaction
      * @dev This function combines depositCollateral and mintDSC operations
+     * @param tokenCollateralAddress The address of the collateral token to deposit
+     * @param amountCollateral The amount of collateral tokens to deposit
+     * @param amountDscToMint The amount of DSC tokens to mint
+     * @dev Requires the amount to be greater than zero and checks health factor after minting
+     * @dev Emits CollateralDeposited event on successful deposit
      */
-    function depositCollateralAndMintDSC() external {}
+    function depositCollateralAndMintDSC(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToMint) external {
+        depositCollateral(tokenCollateralAddress, amountCollateral);
+        mintDSC(amountDscToMint);
+    }
 
     /**
      * @notice Deposits collateral tokens into the system
@@ -79,7 +87,7 @@ contract DSCEngine is ReentrancyGuard {
      * @dev Emits CollateralDeposited event on successful deposit
      */
     function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+        public
         moreThanZero(amountCollateral)
         isAllowedToken(tokenCollateralAddress)
         nonReentrant
@@ -124,7 +132,7 @@ contract DSCEngine is ReentrancyGuard {
      * @param amountDSCToMint The amount of DSC tokens to mint
      * @dev Requires the amount to be greater than zero and checks health factor after minting
      */
-    function mintDSC(uint256 amountDSCToMint) external moreThanZero(amountDSCToMint) nonReentrant {
+    function mintDSC(uint256 amountDSCToMint) public moreThanZero(amountDSCToMint) nonReentrant {
         s_DSCMinted[msg.sender] += amountDSCToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
         bool minted = i_dsc.mint(msg.sender, amountDSCToMint);
@@ -191,9 +199,39 @@ contract DSCEngine is ReentrancyGuard {
         return totalCollateralValue;
     }
 
+    /**
+     * @notice Converts a token amount to USD value using Chainlink price feed
+     * @param token The address of the token to convert
+     * @param amount The amount of the token to convert
+     * @return The USD value of the token amount
+     * @dev This function uses the Chainlink price feed to get the price of the token
+     */
     function getUsdValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
+    }
+
+    
+    /**
+     * @notice Gets the current price of ETH in USD from Chainlink price feed
+     * @return The current price of ETH in USD
+     * @dev Uses the WETH price feed to get the latest ETH price
+     */
+    function getEthPrice() public view returns(uint256){
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[weth]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        return uint256(price);
+    }
+
+    /**
+     * @notice Gets the current price of BTC in USD from Chainlink price feed
+     * @return The current price of BTC in USD
+     * @dev Uses the WBTC price feed to get the latest BTC price
+     */
+    function getBTCPrice() public view returns(uint256){
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[wbtc]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        return uint256(price);
     }
 }
