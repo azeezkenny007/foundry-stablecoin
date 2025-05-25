@@ -17,7 +17,7 @@ contract DeployDsc is Script {
      * @notice Array of token addresses that can be used as collateral
      */
     address[] public tokenAddresses;
-    
+
     /**
      * @notice Array of price feed addresses corresponding to the collateral tokens
      */

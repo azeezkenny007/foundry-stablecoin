@@ -35,8 +35,10 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TransferFailed();
     error DSCEngine__HealthFactorIsBroken(uint256 userHealthFactor);
     error DSCEngine__MintFailed();
+    error DSCEngine__HealthFactorOk();
 
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
+    event CollateralRedeemed(address indexed redeemedBy, address indexed redeemedFrom, uint256 indexed amount);
 
     DecentralizedStableCoin private immutable i_dsc;
 
@@ -74,7 +76,11 @@ contract DSCEngine is ReentrancyGuard {
      * @dev Requires the amount to be greater than zero and checks health factor after minting
      * @dev Emits CollateralDeposited event on successful deposit
      */
-    function depositCollateralAndMintDSC(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToMint) external {
+    function depositCollateralAndMintDSC(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountDscToMint
+    ) external {
         depositCollateral(tokenCollateralAddress, amountCollateral);
         mintDSC(amountDscToMint);
     }
@@ -103,20 +109,51 @@ contract DSCEngine is ReentrancyGuard {
     /**
      * @notice Redeems collateral tokens by burning DSC tokens
      * @dev This function allows users to redeem their collateral by burning DSC tokens
+     * @param tokenCollateralAddress The address of the collateral token to redeem
+     * @param amountCollateral The amount of collateral tokens to redeem
+     * @param amountDscToBurn The amount of DSC tokens to burn
+     * @dev Requires the amount to be greater than zero and checks health factor after redeeming
+     * @dev Emits CollateralRedeemed event on successful redemption
+     * @dev Transfers the collateral tokens to the user
+     * @dev Reverts if the transfer fails
      */
-    function redeemCollateralForDSC() external {}
+    function redeemCollateralForDSC( address tokenCollateralAddress,uint256 amountCollateral, uint256 amountDscToBurn) external {
+            burnDSC(amountDscToBurn);
+            redeemCollateral(tokenCollateralAddress, amountCollateral);
+    }
 
     /**
      * @notice Redeems collateral tokens without burning DSC tokens
      * @dev This function allows users to withdraw their collateral if they have sufficient health factor
+     * @param tokenCollateralAddress The address of the collateral token to redeem
+     * @param amountCollateral The amount of collateral tokens to redeem
+     * @dev Requires the amount to be greater than zero and checks health factor after redeeming
+     * @dev Emits CollateralRedeemed event on successful redemption
+     * @dev Transfers the collateral tokens to the user
+     * @dev Reverts if the transfer fails
      */
-    function redeemCollateral() external {}
+    function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+        public
+        moreThanZero(amountCollateral)
+        nonReentrant
+    {
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+        emit CollateralRedeemed(msg.sender, tokenCollateralAddress, amountCollateral);
+        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
 
     /**
      * @notice Gets the total DSC minted and collateral value in USD for a user
      * @param user The address of the user to get information for
      * @return totalDscMinted The total amount of DSC tokens minted by the user
      * @return collateralValueInUsd The total value of user's collateral in USD
+     * @dev This function calculates the total value of all collateral tokens deposited
+     * 
+     * 
      */
     function _getInformationFromUser(address user)
         private
@@ -131,6 +168,9 @@ contract DSCEngine is ReentrancyGuard {
      * @notice Mints new DSC tokens
      * @param amountDSCToMint The amount of DSC tokens to mint
      * @dev Requires the amount to be greater than zero and checks health factor after minting
+     * @dev Emits CollateralRedeemed event on successful minting
+     * @dev Transfers the DSC tokens to the user
+     * @dev Reverts if the transfer fails
      */
     function mintDSC(uint256 amountDSCToMint) public moreThanZero(amountDSCToMint) nonReentrant {
         s_DSCMinted[msg.sender] += amountDSCToMint;
@@ -144,14 +184,41 @@ contract DSCEngine is ReentrancyGuard {
     /**
      * @notice Burns DSC tokens
      * @dev This function allows users to burn their DSC tokens
+     * @param amount The amount of DSC tokens to burn
+     * @dev Requires the amount to be greater than zero and checks health factor after burning
+     * @dev Emits CollateralRedeemed event on successful burning
+     * @dev Transfers the DSC tokens to the contract
+     * @dev Reverts if the transfer fails
      */
-    function burnDSC() external {}
+    function burnDSC(uint256 amount ) public moreThanZero(amount) {
+           s_DSCMinted[msg.sender]-=amount;
+           bool success = i_dsc.transferFrom(msg.sender,address(this), amount);
+           if(!success){
+             revert DSCEngine__TransferFailed();
+           }
+           i_dsc.burn(amount);
+    }
 
     /**
      * @notice Liquidates a user's position if their health factor is below threshold
      * @dev This function allows liquidators to liquidate unhealthy positions
+     * @param collateral The address of the collateral token to liquidate
+     * @param user The address of the user to liquidate
+     * @param debtToCover The amount of DSC tokens to cover
+     * @dev Requires the amount to be greater than zero and checks health factor after liquidating
+     * @dev Emits CollateralRedeemed event on successful liquidation
+     * @dev Transfers the collateral tokens to the liquidator
+     * @dev Reverts if the transfer fails
+
      */
-    function liquidate() external {}
+    function liquidate(address collateral, address user, uint256 debtToCover) public moreThanZero(debtToCover) nonReentrant {
+            uint256 startingUserHealthFactor = _healthFactor(user);
+            if(startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
+                 revert DSCEngine__HealthFactorOk();
+            }
+                  
+
+    }
 
     /**
      * @notice Gets the health factor of the caller
@@ -212,13 +279,14 @@ contract DSCEngine is ReentrancyGuard {
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-    
     /**
      * @notice Gets the current price of ETH in USD from Chainlink price feed
      * @return The current price of ETH in USD
      * @dev Uses the WETH price feed to get the latest ETH price
+     * @param weth The address of the WETH token
+     * @dev This function uses the WETH price feed to get the latest ETH price
      */
-    function getEthPrice() public view returns(uint256){
+    function getEthPrice(address weth) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[weth]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         return uint256(price);
@@ -228,8 +296,10 @@ contract DSCEngine is ReentrancyGuard {
      * @notice Gets the current price of BTC in USD from Chainlink price feed
      * @return The current price of BTC in USD
      * @dev Uses the WBTC price feed to get the latest BTC price
+     * @param wbtc The address of the WBTC token
+     * @dev This function uses the WBTC price feed to get the latest BTC price
      */
-    function getBTCPrice() public view returns(uint256){
+    function getBTCPrice(address wbtc) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[wbtc]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         return uint256(price);
