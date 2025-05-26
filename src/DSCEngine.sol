@@ -366,7 +366,7 @@ contract DSCEngine is ReentrancyGuard {
      * @return The health factor value
      * @dev Health factor is calculated based on collateral value and DSC minted
      * @dev This function is used to calculate the health factor for a user
-    */
+     */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getInformationFromUser(user);
         uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
@@ -391,5 +391,10 @@ contract DSCEngine is ReentrancyGuard {
         if (!success) {
             revert DSCEngine__TransferFailed();
         }
+    }
+
+    function getAccountInformation(address user) external view returns (uint256 totalDscMinted, uint256 collateralValueInUsd) {
+        (totalDscMinted, collateralValueInUsd) = _getInformationFromUser(user);
+      
     }
 }
