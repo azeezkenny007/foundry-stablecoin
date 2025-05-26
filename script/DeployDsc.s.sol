@@ -27,6 +27,9 @@ contract DeployDsc is Script {
      * @notice Main deployment function that sets up the DSC ecosystem
      * @return Dsc The deployed DecentralizedStableCoin contract
      * @return engine The deployed DSCEngine contract
+     * @return helperConfig The deployed HelperConfig contract
+     * @dev This function deploys the DSC token and its engine contract
+     * @dev This function uses the HelperConfig contract to get the necessary addresses
      */
     function run() external returns (DecentralizedStableCoin, DSCEngine, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
