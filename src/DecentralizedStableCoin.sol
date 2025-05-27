@@ -20,6 +20,7 @@ contract DecentralizedStableCoin is ERC20Burnable, Ownable {
     error DecentralizedStableCoin__BurnAmountExceedsBalance();
     error DecentralizedStableCoin__NotZeroAddress();
 
+
     /**
      * @notice Constructor initializes the token with name and symbol
      * @dev Sets the owner to the deployer of the contract
