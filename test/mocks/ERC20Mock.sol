@@ -26,4 +26,12 @@ contract ERC20Mock is ERC20 {
     function approveInternal(address owner, address spender, uint256 value) public {
         _approve(owner, spender, value);
     }
+
+    function transfer(address to, uint256 value) public override returns (bool) {
+        return super.transfer(to, value);
+    }
+
+    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
+        return super.transferFrom(from, to, value);
+    }
 }

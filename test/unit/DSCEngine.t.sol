@@ -7,7 +7,7 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DeployDsc} from "../../script/DeployDsc.s.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
-import {ERC20Mock} from "../mocks/ERC20Mock.sol";
+import {ERC20Mock} from "../../test/mocks/ERC20Mock.sol";
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
 
 contract DSCEngineTest is Test, CodeConstants {
