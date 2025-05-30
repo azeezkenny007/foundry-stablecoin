@@ -11,6 +11,12 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Handler} from "./Handler.t.sol";
 
+/**
+ * @title OpenInVariantsTest
+ * @author Azeez Okhamena
+ * @notice This contract performs invariant/fuzz testing for the DSCEngine and DecentralizedStableCoin system
+ * @dev Uses Foundry's StdInvariant for fuzz testing and a Handler contract to manage test scenarios
+ */
 contract OpenInVariantsTest is StdInvariant, Test {
    DeployDsc deployer;
    DSCEngine public dsce;
@@ -25,6 +31,11 @@ contract OpenInVariantsTest is StdInvariant, Test {
    address[] public priceFeedAddresses;
    Handler public handler;
 
+   /**
+    * @notice Initializes the test environment with necessary contracts and configurations
+    * @dev Deploys DSC system, sets up handler, and targets it for invariant testing
+    * @dev This function is used to initialize the test environment with necessary contracts and configurations    
+    */
    function setUp() public{
     deployer = new DeployDsc(); 
     (dsc, dsce ,helperConfig) = deployer.run();
@@ -35,7 +46,12 @@ contract OpenInVariantsTest is StdInvariant, Test {
     targetContract(address(handler));
    }
 
-
+   /**
+    * @notice Tests the core invariant that the protocol must maintain over-collateralization
+    * @dev Verifies that the total value of deposited collateral (WETH + WBTC) is always >= total DSC supply
+    * @dev This function is used to test the core invariant that the protocol must maintain over-collateralization
+    
+    */
    function invariant_protocolMustHaveMoreValueThanTotalSupply() external view {
       uint256 totalSupply = dsc.totalSupply();
       uint256 totalWethDeposited =IERC20(weth).balanceOf(address(dsce));
@@ -49,6 +65,7 @@ contract OpenInVariantsTest is StdInvariant, Test {
       console.log("weth value:",wethValue);
       console.log("wbtc value:",wbtcValue);
       console.log("total supply:",totalSupply);
+      console.log("Time Mint Called:", handler.timeMintCalled());
       assert(totalDepositedValue >= totalSupply);
    }
 }

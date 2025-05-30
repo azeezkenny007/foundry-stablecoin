@@ -393,6 +393,13 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice Gets the total DSC minted and collateral value in USD for a user
+     * @param user The address of the user to get information for
+     * @return totalDscMinted The total amount of DSC tokens minted by the user
+     * @return collateralValueInUsd The total value of user's collateral in USD
+     * @dev This function is used to get the total DSC minted and collateral value in USD for a user
+     */
     function getAccountInformation(address user)
         external
         view
@@ -401,7 +408,23 @@ contract DSCEngine is ReentrancyGuard {
         (totalDscMinted, collateralValueInUsd) = _getInformationFromUser(user);
     }
 
+    /**
+     * @notice Gets the collateral tokens
+     * @return The collateral tokens
+     * @dev This function is used to get the collateral tokens
+     */
     function getCollateralTokens() external view returns (address[] memory) {
         return s_collateralTokens;
+    }
+
+    /**
+     * @notice Gets the collateral balance of a user for a specific token
+     * @param user The address of the user to get the collateral balance for
+     * @param token The address of the token to get the collateral balance for
+     * @return The collateral balance of the user for the token
+     * @dev This function is used to get the collateral balance of a user for a specific token
+     */
+    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+        return s_collateralDeposited[user][token];
     }
 }
