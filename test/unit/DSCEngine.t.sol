@@ -88,8 +88,6 @@ contract DSCEngineTest is Test, CodeConstants {
         assertEq(actualUsd, expectedUsd);
     }
 
-    
-
     function testRevertIfCollateralIsZero() external {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(USER, AMOUNT_COLLATERAL);

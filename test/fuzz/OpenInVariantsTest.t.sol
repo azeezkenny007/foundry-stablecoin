@@ -10,7 +10,6 @@ pragma solidity ^0.8.18;
 // import {HelperConfig} from "../../script/HelperConfig.s.sol";
 // import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 // contract OpenInVariantsTest is StdInvariant, Test {
 //    DeployDsc deployer;
 //    DSCEngine public dsce;
@@ -23,10 +22,9 @@ pragma solidity ^0.8.18;
 //    uint256 public deployerKey;
 //    address[] public tokenAddresses;
 //    address[] public priceFeedAddresses;
- 
 
 //    function setUp() public{
-//     deployer = new DeployDsc(); 
+//     deployer = new DeployDsc();
 //     (dsc, dsce ,helperConfig) = deployer.run();
 //     (wethUsdPriceFeed, weth, wbtc, wbtcUsdPriceFeed, deployerKey) = helperConfig.activeNetworkConfig();
 //     tokenAddresses = [weth, wbtc];
@@ -34,12 +32,11 @@ pragma solidity ^0.8.18;
 //     targetContract(address(dsce));
 //    }
 
-
 //    function invariant_protocolMustHaveMoreValueThanTotalSupply() external view {
 //       uint256 totalSupply = dsc.totalSupply();
 //       uint256 totalWethDeposited =IERC20(weth).balanceOf(address(dsce));
 //       uint256 totalBtcDeposited = IERC20(wbtc).balanceOf(address(dsce));
-      
+
 //       uint256 wethValue = dsce.getUsdValue(weth,totalWethDeposited);
 //       uint256 wbtcValue = dsce.getUsdValue(wbtc,totalBtcDeposited);
 

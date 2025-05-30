@@ -6,6 +6,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./Libraries/OracleLib.sol";
 
 /**
  * @title DSCEngine
@@ -31,6 +32,8 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant MIN_HEALTH_FACTOR = 1e18;
     uint256 private constant LIQUIDATION_BONUS = 150;
     DecentralizedStableCoin private immutable i_dsc;
+
+    using OracleLib for AggregatorV3Interface;
 
     // Events
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
@@ -256,7 +259,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getTokenAmountFromUsd(address token, uint256 usdAmount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         return (usdAmount * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
@@ -284,7 +287,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getUsdValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
@@ -296,7 +299,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getEthPrice(address weth) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[weth]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         return uint256(price);
     }
 
@@ -308,7 +311,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getBTCPrice(address wbtc) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[wbtc]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         return uint256(price);
     }
 
@@ -426,5 +429,25 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
         return s_collateralDeposited[user][token];
+    }
+
+    /**
+     * @notice Gets the price feed address for a specific collateral token
+     * @param token The address of the token to get the price feed for
+     * @return The price feed address for the token
+     * @dev This function is used to get the price feed address for a specific collateral token
+     */
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
+    }
+
+    /**
+     * @notice Gets the health factor for a user
+     * @param user The address of the user to get the health factor for
+     * @return The health factor for the user
+     * @dev This function is used to get the health factor for a user
+     */
+    function getUserHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
     }
 }
