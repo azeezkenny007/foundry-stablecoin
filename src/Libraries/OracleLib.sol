@@ -14,7 +14,6 @@ library OracleLib {
     revert OracleLib__StalePrice();
    }
    return (roundID, price, startedAt, updatedAt, answeredInRound);
-   
   }
 }
 
